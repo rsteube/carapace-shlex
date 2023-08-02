@@ -58,6 +58,7 @@ type lexerState int
 type Token struct {
 	tokenType TokenType
 	value     string
+	index     int
 }
 
 // Equal reports whether tokens a, and b, are equal.
@@ -70,7 +71,7 @@ func (a *Token) Equal(b *Token) bool {
 	if a.tokenType != b.tokenType {
 		return false
 	}
-	return a.value == b.value
+	return a.value == b.value && a.index == b.index
 }
 
 // Named classes of UTF-8 runes
@@ -169,6 +170,7 @@ func (l *Lexer) Next() (string, error) {
 type Tokenizer struct {
 	input      bufio.Reader
 	classifier tokenClassifier
+	index      int
 }
 
 // NewTokenizer creates a new tokenizer from an input stream.
@@ -184,6 +186,7 @@ func NewTokenizer(r io.Reader) *Tokenizer {
 // It will panic if it encounters a rune which it does not know how to handle.
 func (t *Tokenizer) scanStream() (*Token, error) {
 	state := startState
+	tokenIndex := 0
 	var tokenType TokenType
 	var value []rune
 	var nextRune rune
@@ -192,6 +195,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 
 	for {
 		nextRune, _, err = t.input.ReadRune()
+		t.index += 1
 		nextRuneType = t.classifier.ClassifyRune(nextRune)
 
 		if err == io.EOF {
@@ -204,6 +208,9 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 		switch state {
 		case startState: // no runes read yet
 			{
+				if nextRuneType != spaceRuneClass {
+					tokenIndex = t.index - 1
+				}
 				switch nextRuneType {
 				case eofRuneClass:
 					{
@@ -247,14 +254,16 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 					{
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				case spaceRuneClass:
 					{
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				case escapingQuoteRuneClass:
@@ -283,7 +292,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 						err = fmt.Errorf("EOF found after escape character")
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				default:
@@ -301,7 +311,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 						err = fmt.Errorf("EOF found after escape character")
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				default:
@@ -319,7 +330,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 						err = fmt.Errorf("EOF found when expecting closing quote")
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				case escapingQuoteRuneClass:
@@ -344,7 +356,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 						err = fmt.Errorf("EOF found when expecting closing quote")
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				case nonEscapingQuoteRuneClass:
@@ -364,7 +377,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 					{
 						token := &Token{
 							tokenType: tokenType,
-							value:     string(value)}
+							value:     string(value),
+							index:     tokenIndex}
 						return token, err
 					}
 				case spaceRuneClass:
@@ -373,7 +387,8 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 							state = startState
 							token := &Token{
 								tokenType: tokenType,
-								value:     string(value)}
+								value:     string(value),
+								index:     tokenIndex}
 							return token, err
 						} else {
 							value = append(value, nextRune)
