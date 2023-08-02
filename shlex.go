@@ -56,13 +56,13 @@ type lexerState int
 
 // Token is a (type, value) pair representing a lexographical token.
 type Token struct {
-	tokenType TokenType
-	value     string
-	index     int
+	Type  TokenType
+	Value string
+	index int
 }
 
 func (t *Token) add(r rune) {
-	t.value += string(r)
+	t.Value += string(r)
 }
 
 // Equal reports whether tokens a, and b, are equal.
@@ -72,10 +72,10 @@ func (a *Token) Equal(b *Token) bool {
 	if a == nil || b == nil {
 		return false
 	}
-	if a.tokenType != b.tokenType {
+	if a.Type != b.Type {
 		return false
 	}
-	return a.value == b.value && a.index == b.index
+	return a.Value == b.Value && a.index == b.index
 }
 
 // Named classes of UTF-8 runes
@@ -156,21 +156,21 @@ func NewLexer(r io.Reader) *Lexer {
 	return (*Lexer)(NewTokenizer(r))
 }
 
-// Next returns the next word, or an error. If there are no more words,
+// Next returns the next token, or an error. If there are no more tokens,
 // the error will be io.EOF.
-func (l *Lexer) Next() (string, error) {
+func (l *Lexer) Next() (*Token, error) {
 	for {
 		token, err := (*Tokenizer)(l).Next()
 		if err != nil {
-			return "", err
+			return token, err
 		}
-		switch token.tokenType {
+		switch token.Type {
 		case WordToken, PipelineToken:
-			return token.value, nil
+			return token, nil
 		case CommentToken:
 			// skip comments
 		default:
-			return "", fmt.Errorf("unknown token type: %v", token.tokenType)
+			return nil, fmt.Errorf("unknown token type: %v", token.Type)
 		}
 	}
 }
@@ -237,23 +237,23 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				case spaceRuneClass:
 					// skip
 				case escapingQuoteRuneClass:
-					token.tokenType = WordToken
+					token.Type = WordToken
 					state = quotingEscapingState
 				case nonEscapingQuoteRuneClass:
-					token.tokenType = WordToken
+					token.Type = WordToken
 					state = quotingState
 				case escapeRuneClass:
-					token.tokenType = WordToken
+					token.Type = WordToken
 					state = escapingState
 				case commentRuneClass:
-					token.tokenType = CommentToken
+					token.Type = CommentToken
 					state = commentState
 				case pipelineRuneClass:
-					token.tokenType = PipelineToken
+					token.Type = PipelineToken
 					token.add(nextRune)
 					state = pipelineState
 				default:
-					token.tokenType = WordToken
+					token.Type = WordToken
 					token.add(nextRune)
 					state = inWordState
 				}
@@ -347,18 +347,29 @@ func (t *Tokenizer) Next() (*Token, error) {
 	return t.scanStream()
 }
 
-// Split partitions a string into a slice of strings.
-func Split(s string) ([]string, error) {
+type Tokens []Token
+
+func (t Tokens) Strings() []string {
+	s := make([]string, 0, len(t))
+	for _, token := range t {
+		s = append(s, token.Value)
+	}
+	return s
+}
+
+// Split partitions of a string into tokens.
+func Split(s string) (*Tokens, error) {
 	l := NewLexer(strings.NewReader(s))
-	subStrings := make([]string, 0)
+	tokens := make([]Token, 0)
 	for {
-		word, err := l.Next()
+		token, err := l.Next()
 		if err != nil {
 			if err == io.EOF {
-				return subStrings, nil
+				t := Tokens(tokens)
+				return &t, nil
 			}
-			return subStrings, err
+			return nil, err
 		}
-		subStrings = append(subStrings, word)
+		tokens = append(tokens, *token)
 	}
 }

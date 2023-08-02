@@ -87,7 +87,7 @@ func TestLexer(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if got != want {
+		if got.Value != want {
 			t.Errorf("Lexer.Next()[%v] of %q -> %v. Want: %v", i, testString, got, want)
 		}
 	}
@@ -99,12 +99,12 @@ func TestSplit(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(want) != len(got) {
+	if len(want) != len(*got) {
 		t.Errorf("Split(%q) -> %v. Want: %v", testString, got, want)
 	}
-	for i := range got {
-		if got[i] != want[i] {
-			t.Errorf("Split(%q)[%v] -> %v. Want: %v", testString, i, got[i], want[i])
+	for i, g := range *got {
+		if g.Value != want[i] {
+			t.Errorf("Split(%q)[%v] -> %v. Want: %v", testString, i, g.Value, want[i])
 		}
 	}
 }
