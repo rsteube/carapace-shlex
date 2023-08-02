@@ -45,24 +45,24 @@ func TestClassifier(t *testing.T) {
 func TestTokenizer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedTokens := []*Token{
-		{WordToken, "one", 0},
-		{WordToken, "two", 4},
-		{WordToken, "three four", 8},
-		{WordToken, "five \"six\"", 21},
-		{WordToken, "seven#eight", 36},
-		{CommentToken, " nine # ten", 48},
-		{WordToken, "eleven", 62},
-		{WordToken, "twelve\\", 69},
-		{WordToken, "thirteen=13", 79},
-		{WordToken, "fourteen/14", 91},
-		{PipelineToken, "|", 103},
-		{PipelineToken, "||", 105},
-		{PipelineToken, "|", 108},
-		{WordToken, "after", 109},
-		{WordToken, "before", 115},
-		{PipelineToken, "|", 121},
-		{PipelineToken, "&", 123},
-		{PipelineToken, ";", 125},
+		{WordToken, "one", "one", 0},
+		{WordToken, "two", "two", 4},
+		{WordToken, "three four", "\"three four\"", 8},
+		{WordToken, "five \"six\"", "\"five \\\"six\\\"\"", 21},
+		{WordToken, "seven#eight", "seven#eight", 36},
+		{CommentToken, " nine # ten", "# nine # ten", 48},
+		{WordToken, "eleven", "eleven", 62},
+		{WordToken, "twelve\\", "'twelve\\'", 69},
+		{WordToken, "thirteen=13", "thirteen=13", 79},
+		{WordToken, "fourteen/14", "fourteen/14", 91},
+		{PipelineToken, "|", "|", 103},
+		{PipelineToken, "||", "||", 105},
+		{PipelineToken, "|", "|", 108},
+		{WordToken, "after", "after", 109},
+		{WordToken, "before", "before", 115},
+		{PipelineToken, "|", "|", 121},
+		{PipelineToken, "&", "&", 123},
+		{PipelineToken, ";", ";", 125},
 	}
 
 	tokenizer := NewTokenizer(testInput)
@@ -72,7 +72,7 @@ func TestTokenizer(t *testing.T) {
 			t.Error(err)
 		}
 		if !got.Equal(want) {
-			t.Errorf("Tokenizer.Next()[%v] of %q -> %v. Want: %v", i, testString, got, want)
+			t.Errorf("Tokenizer.Next()[%v] of %q \nGot : %#v\nWant: %#v", i, testString, got, want)
 		}
 	}
 }
