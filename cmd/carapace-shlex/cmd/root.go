@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "%#v", splitted)
+		fmt.Fprintf(cmd.OutOrStdout(), "%#v", splitted.Strings())
 		return nil
 	},
 }
