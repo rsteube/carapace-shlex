@@ -45,24 +45,25 @@ func TestClassifier(t *testing.T) {
 func TestTokenizer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedTokens := []*Token{
-		{WordToken, "one", "one", 0},
-		{WordToken, "two", "two", 4},
-		{WordToken, "three four", "\"three four\"", 8},
-		{WordToken, "five \"six\"", "\"five \\\"six\\\"\"", 21},
-		{WordToken, "seven#eight", "seven#eight", 36},
-		{CommentToken, " nine # ten", "# nine # ten", 48},
-		{WordToken, "eleven", "eleven", 62},
-		{WordToken, "twelve\\", "'twelve\\'", 69},
-		{WordToken, "thirteen=13", "thirteen=13", 79},
-		{WordToken, "fourteen/14", "fourteen/14", 91},
-		{PipelineToken, "|", "|", 103},
-		{PipelineToken, "||", "||", 105},
-		{PipelineToken, "|", "|", 108},
-		{WordToken, "after", "after", 109},
-		{WordToken, "before", "before", 115},
-		{PipelineToken, "|", "|", 121},
-		{PipelineToken, "&", "&", 123},
-		{PipelineToken, ";", ";", 125},
+		{WORD_TOKEN, "one", "one", 0, IN_WORD_STATE},
+		{WORD_TOKEN, "two", "two", 4, IN_WORD_STATE},
+		{WORD_TOKEN, "three four", "\"three four\"", 8, IN_WORD_STATE},
+		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE},
+		{WORD_TOKEN, "seven#eight", "seven#eight", 36, IN_WORD_STATE},
+		{COMMENT_TOKEN, " nine # ten", "# nine # ten", 48, START_STATE},
+		{WORD_TOKEN, "eleven", "eleven", 62, IN_WORD_STATE},
+		{WORD_TOKEN, "twelve\\", "'twelve\\'", 69, IN_WORD_STATE},
+		{WORD_TOKEN, "thirteen=13", "thirteen=13", 79, IN_WORD_STATE},
+		{WORD_TOKEN, "fourteen/14", "fourteen/14", 91, IN_WORD_STATE},
+		{PIPELINE_TOKEN, "|", "|", 103, PIPELINE_STATE},
+		{PIPELINE_TOKEN, "||", "||", 105, PIPELINE_STATE},
+		{PIPELINE_TOKEN, "|", "|", 108, PIPELINE_STATE},
+		{WORD_TOKEN, "after", "after", 109, IN_WORD_STATE},
+		{WORD_TOKEN, "before", "before", 115, IN_WORD_STATE},
+		{PIPELINE_TOKEN, "|", "|", 121, PIPELINE_STATE},
+		{PIPELINE_TOKEN, "&", "&", 123, PIPELINE_STATE},
+		{PIPELINE_TOKEN, ";", ";", 125, PIPELINE_STATE},
+		{WORD_TOKEN, "", "", 126, START_STATE},
 	}
 
 	tokenizer := NewTokenizer(testInput)
@@ -94,7 +95,7 @@ func TestLexer(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";"}
+	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";", ""}
 	got, err := Split(testString)
 	if err != nil {
 		t.Error(err)

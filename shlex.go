@@ -40,6 +40,7 @@ package shlex
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -48,11 +49,19 @@ import (
 // TokenType is a top-level token classification: A word, space, comment, unknown.
 type TokenType int
 
+func (t TokenType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tokenTypes[t])
+}
+
 // runeTokenClass is the type of a UTF-8 character classification: A quote, space, escape.
 type runeTokenClass int
 
 // the internal state used by the lexer state machine
-type lexerState int
+type LexerState int
+
+func (l LexerState) MarshalJSON() ([]byte, error) {
+	return json.Marshal(lexerStates[l])
+}
 
 // Token is a (type, value) pair representing a lexographical token.
 type Token struct {
@@ -60,6 +69,7 @@ type Token struct {
 	Value    string
 	RawValue string
 	Index    int
+	State    LexerState
 }
 
 func (t *Token) add(r rune) {
@@ -84,7 +94,13 @@ func (a *Token) Equal(b *Token) bool {
 	if a.RawValue != b.RawValue {
 		return false
 	}
-	return a.Value == b.Value && a.Index == b.Index
+	if a.Index != b.Index {
+		return false
+	}
+	if a.State != b.State {
+		return false
+	}
+	return a.Value == b.Value
 }
 
 // Named classes of UTF-8 runes
@@ -111,24 +127,43 @@ const (
 
 // Classes of lexographic token
 const (
-	UnknownToken TokenType = iota
-	WordToken
-	SpaceToken
-	CommentToken
-	PipelineToken
+	UNKNOWN_TOKEN TokenType = iota
+	WORD_TOKEN
+	SPACE_TOKEN
+	COMMENT_TOKEN
+	PIPELINE_TOKEN
 )
+
+var tokenTypes = map[TokenType]string{
+	UNKNOWN_TOKEN:  "UNKNOWN_TOKEN",
+	WORD_TOKEN:     "WORD_TOKEN",
+	SPACE_TOKEN:    "SPACE_TOKEN",
+	COMMENT_TOKEN:  "COMMENT_TOKEN",
+	PIPELINE_TOKEN: "PIPELINE_TOKEN",
+}
 
 // Lexer state machine states
 const (
-	startState           lexerState = iota // no runes have been seen
-	inWordState                            // processing regular runes in a word
-	escapingState                          // we have just consumed an escape rune; the next rune is literal
-	escapingQuotedState                    // we have just consumed an escape rune within a quoted string
-	quotingEscapingState                   // we are within a quoted string that supports escaping ("...")
-	quotingState                           // we are within a string that does not support escaping ('...')
-	commentState                           // we are within a comment (everything following an unquoted or unescaped #
-	pipelineState                          // we have just consumed a pipeline delimiter (just consume these until we reach something else)
+	START_STATE            LexerState = iota // no runes have been seen
+	IN_WORD_STATE                            // processing regular runes in a word
+	ESCAPING_STATE                           // we have just consumed an escape rune; the next rune is literal
+	ESCAPING_QUOTED_STATE                    // we have just consumed an escape rune within a quoted string
+	QUOTING_ESCAPING_STATE                   // we are within a quoted string that supports escaping ("...")
+	QUOTING_STATE                            // we are within a string that does not support escaping ('...')
+	COMMENT_STATE                            // we are within a comment (everything following an unquoted or unescaped #
+	PIPELINE_STATE                           // we have just consumed a pipeline delimiter (just consume these until we reach something else)
 )
+
+var lexerStates = map[LexerState]string{
+	START_STATE:            "START_STATE",
+	IN_WORD_STATE:          "IN_WORD_STATE",
+	ESCAPING_STATE:         "ESCAPING_STATE",
+	ESCAPING_QUOTED_STATE:  "ESCAPING_QUOTED_STATE",
+	QUOTING_ESCAPING_STATE: "QUOTING_ESCAPING_STATE",
+	QUOTING_STATE:          "QUOTING_STATE",
+	COMMENT_STATE:          "COMMENT_STATE",
+	PIPELINE_STATE:         "PIPELINE_STATE",
+}
 
 // tokenClassifier is used for classifying rune characters.
 type tokenClassifier map[rune]runeTokenClass
@@ -174,9 +209,9 @@ func (l *Lexer) Next() (*Token, error) {
 			return token, err
 		}
 		switch token.Type {
-		case WordToken, PipelineToken:
+		case WORD_TOKEN, PIPELINE_TOKEN:
 			return token, nil
-		case CommentToken:
+		case COMMENT_TOKEN:
 			// skip comments
 		default:
 			return nil, fmt.Errorf("unknown token type: %v", token.Type)
@@ -189,6 +224,7 @@ type Tokenizer struct {
 	input      bufio.Reader
 	classifier tokenClassifier
 	index      int
+	state      LexerState
 }
 
 func (t *Tokenizer) ReadRune() (r rune, size int, err error) {
@@ -217,16 +253,19 @@ func NewTokenizer(r io.Reader) *Tokenizer {
 // scanStream scans the stream for the next token using the internal state machine.
 // It will panic if it encounters a rune which it does not know how to handle.
 func (t *Tokenizer) scanStream() (*Token, error) {
-	state := startState
+	previousState := t.state
+	t.state = START_STATE
 	token := &Token{}
 	var nextRune rune
 	var nextRuneType runeTokenClass
 	var err error
+	consumed := 0
 
 	for {
 		nextRune, _, err = t.ReadRune()
 		nextRuneType = t.classifier.ClassifyRune(nextRune)
 		token.RawValue += string(nextRune)
+		consumed += 1 // TODO find a nicer solution for this
 
 		switch {
 		case err == io.EOF:
@@ -236,40 +275,48 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 			return nil, err
 		}
 
-		switch state {
-		case startState: // no runes read yet
+		switch t.state {
+		case START_STATE: // no runes read yet
 			{
 				if nextRuneType != spaceRuneClass {
 					token.Index = t.index - 1
 				}
 				switch nextRuneType {
 				case eofRuneClass:
-					return nil, io.EOF
+					switch {
+					case previousState == PIPELINE_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
+						token.removeLastRaw()
+						token.Type = WORD_TOKEN
+						token.Index = t.index
+						return token, nil // return an additional empty token for current cursor position
+					default:
+						return nil, io.EOF
+					}
 				case spaceRuneClass:
 					token.removeLastRaw()
 				case escapingQuoteRuneClass:
-					token.Type = WordToken
-					state = quotingEscapingState
+					token.Type = WORD_TOKEN
+					t.state = QUOTING_ESCAPING_STATE
 				case nonEscapingQuoteRuneClass:
-					token.Type = WordToken
-					state = quotingState
+					token.Type = WORD_TOKEN
+					t.state = QUOTING_STATE
 				case escapeRuneClass:
-					token.Type = WordToken
-					state = escapingState
+					token.Type = WORD_TOKEN
+					t.state = ESCAPING_STATE
 				case commentRuneClass:
-					token.Type = CommentToken
-					state = commentState
+					token.Type = COMMENT_TOKEN
+					t.state = COMMENT_STATE
 				case pipelineRuneClass:
-					token.Type = PipelineToken
+					token.Type = PIPELINE_TOKEN
 					token.add(nextRune)
-					state = pipelineState
+					t.state = PIPELINE_STATE
 				default:
-					token.Type = WordToken
+					token.Type = WORD_TOKEN
 					token.add(nextRune)
-					state = inWordState
+					t.state = IN_WORD_STATE
 				}
 			}
-		case pipelineState:
+		case PIPELINE_STATE:
 			switch nextRuneType {
 			case pipelineRuneClass:
 				token.add(nextRune)
@@ -278,7 +325,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				t.UnreadRune()
 				return token, err
 			}
-		case inWordState: // in a regular word
+		case IN_WORD_STATE: // in a regular word
 			switch nextRuneType {
 			case pipelineRuneClass:
 				token.removeLastRaw()
@@ -286,64 +333,69 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				return token, err
 			case eofRuneClass, spaceRuneClass:
 				token.removeLastRaw()
+				t.UnreadRune()
 				return token, err
 			case escapingQuoteRuneClass:
-				state = quotingEscapingState
+				t.state = QUOTING_ESCAPING_STATE
 			case nonEscapingQuoteRuneClass:
-				state = quotingState
+				t.state = QUOTING_STATE
 			case escapeRuneClass:
-				state = escapingState
+				t.state = ESCAPING_STATE
 			default:
 				token.add(nextRune)
 			}
-		case escapingState: // the rune after an escape character
+		case ESCAPING_STATE: // the rune after an escape character
 			switch nextRuneType {
 			case eofRuneClass:
-				err = fmt.Errorf("EOF found after escape character")
+				token.removeLastRaw()
+				//err = fmt.Errorf("EOF found after escape character")
 				return token, err
 			default:
-				state = inWordState
+				t.state = IN_WORD_STATE
 				token.add(nextRune)
 			}
-		case escapingQuotedState: // the next rune after an escape character, in double quotes
+		case ESCAPING_QUOTED_STATE: // the next rune after an escape character, in double quotes
 			switch nextRuneType {
 			case eofRuneClass:
-				err = fmt.Errorf("EOF found after escape character")
+				token.removeLastRaw()
+				// err = fmt.Errorf("EOF found after escape character")
 				return token, err
 			default:
-				state = quotingEscapingState
+				t.state = QUOTING_ESCAPING_STATE
 				token.add(nextRune)
 			}
-		case quotingEscapingState: // in escaping double quotes
+		case QUOTING_ESCAPING_STATE: // in escaping double quotes
 			switch nextRuneType {
 			case eofRuneClass:
-				err = fmt.Errorf("EOF found when expecting closing quote")
+				token.removeLastRaw()
+				// err = fmt.Errorf("EOF found when expecting closing quote")
 				return token, err
 			case escapingQuoteRuneClass:
-				state = inWordState
+				t.state = IN_WORD_STATE
 			case escapeRuneClass:
-				state = escapingQuotedState
+				t.state = ESCAPING_QUOTED_STATE
 			default:
 				token.add(nextRune)
 			}
-		case quotingState: // in non-escaping single quotes
+		case QUOTING_STATE: // in non-escaping single quotes
 			switch nextRuneType {
 			case eofRuneClass:
-				err = fmt.Errorf("EOF found when expecting closing quote")
+				token.removeLastRaw()
+				// err = fmt.Errorf("EOF found when expecting closing quote")
 				return token, err
 			case nonEscapingQuoteRuneClass:
-				state = inWordState
+				t.state = IN_WORD_STATE
 			default:
 				token.add(nextRune)
 			}
-		case commentState: // in a comment
+		case COMMENT_STATE: // in a comment
 			switch nextRuneType {
 			case eofRuneClass:
 				return token, err
 			case spaceRuneClass:
 				if nextRune == '\n' {
 					token.removeLastRaw()
-					state = startState
+					t.state = START_STATE
 					return token, err
 				} else {
 					token.add(nextRune)
@@ -352,14 +404,18 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				token.add(nextRune)
 			}
 		default:
-			return nil, fmt.Errorf("unexpected state: %v", state)
+			return nil, fmt.Errorf("unexpected state: %v", t.state)
 		}
 	}
 }
 
 // Next returns the next token in the stream.
 func (t *Tokenizer) Next() (*Token, error) {
-	return t.scanStream()
+	token, err := t.scanStream()
+	if err == nil {
+		token.State = t.state // TODO should be done in scanStream
+	}
+	return token, err
 }
 
 type Tokens []Token
@@ -372,17 +428,18 @@ func (t Tokens) Strings() []string {
 	return s
 }
 
-func (t Tokens) CurrentPipeline() Tokens {
+func (t Tokens) CurrentPipeline() *Tokens {
 	tokens := make([]Token, 0)
 	for _, token := range t {
 		switch token.Type {
-		case PipelineToken:
+		case PIPELINE_TOKEN:
 			tokens = make([]Token, 0)
 		default:
 			tokens = append(tokens, token)
 		}
 	}
-	return Tokens(tokens)
+	result := Tokens(tokens)
+	return &result
 }
 
 // Split partitions of a string into tokens.
