@@ -24,7 +24,7 @@ import (
 var (
 	// one two "three four" "five \"six\"" seven#eight # nine # ten
 	// eleven 'twelve\'
-	testString = "one two \"three four\" \"five \\\"six\\\"\" seven#eight # nine # ten\n eleven 'twelve\\' thirteen=13 fourteen/14"
+	testString = "one two \"three four\" \"five \\\"six\\\"\" seven#eight # nine # ten\n eleven 'twelve\\' thirteen=13 fourteen/14 | || |after before| & ;"
 )
 
 func TestClassifier(t *testing.T) {
@@ -54,7 +54,16 @@ func TestTokenizer(t *testing.T) {
 		{WordToken, "eleven", 62},
 		{WordToken, "twelve\\", 69},
 		{WordToken, "thirteen=13", 79},
-		{WordToken, "fourteen/14", 91}}
+		{WordToken, "fourteen/14", 91},
+		{PipelineToken, "|", 103},
+		{PipelineToken, "||", 105},
+		{PipelineToken, "|", 108},
+		{WordToken, "after", 109},
+		{WordToken, "before", 115},
+		{PipelineToken, "|", 121},
+		{PipelineToken, "&", 123},
+		{PipelineToken, ";", 125},
+	}
 
 	tokenizer := NewTokenizer(testInput)
 	for i, want := range expectedTokens {
@@ -85,7 +94,7 @@ func TestLexer(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14"}
+	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";"}
 	got, err := Split(testString)
 	if err != nil {
 		t.Error(err)
