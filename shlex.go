@@ -56,13 +56,19 @@ type lexerState int
 
 // Token is a (type, value) pair representing a lexographical token.
 type Token struct {
-	Type  TokenType
-	Value string
-	index int
+	Type     TokenType
+	Value    string
+	RawValue string
+	Index    int
 }
 
 func (t *Token) add(r rune) {
 	t.Value += string(r)
+}
+
+func (t *Token) removeLastRaw() {
+	runes := []rune(t.RawValue)
+	t.RawValue = string(runes[:len(runes)-1])
 }
 
 // Equal reports whether tokens a, and b, are equal.
@@ -75,7 +81,10 @@ func (a *Token) Equal(b *Token) bool {
 	if a.Type != b.Type {
 		return false
 	}
-	return a.Value == b.Value && a.index == b.index
+	if a.RawValue != b.RawValue {
+		return false
+	}
+	return a.Value == b.Value && a.Index == b.Index
 }
 
 // Named classes of UTF-8 runes
@@ -217,11 +226,13 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 	for {
 		nextRune, _, err = t.ReadRune()
 		nextRuneType = t.classifier.ClassifyRune(nextRune)
+		token.RawValue += string(nextRune)
 
-		if err == io.EOF {
+		switch {
+		case err == io.EOF:
 			nextRuneType = eofRuneClass
 			err = nil
-		} else if err != nil {
+		case err != nil:
 			return nil, err
 		}
 
@@ -229,13 +240,13 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 		case startState: // no runes read yet
 			{
 				if nextRuneType != spaceRuneClass {
-					token.index = t.index - 1
+					token.Index = t.index - 1
 				}
 				switch nextRuneType {
 				case eofRuneClass:
 					return nil, io.EOF
 				case spaceRuneClass:
-					// skip
+					token.removeLastRaw()
 				case escapingQuoteRuneClass:
 					token.Type = WordToken
 					state = quotingEscapingState
@@ -263,15 +274,18 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 			case pipelineRuneClass:
 				token.add(nextRune)
 			default:
+				token.removeLastRaw()
 				t.UnreadRune()
 				return token, err
 			}
 		case inWordState: // in a regular word
 			switch nextRuneType {
 			case pipelineRuneClass:
+				token.removeLastRaw()
 				t.UnreadRune()
 				return token, err
 			case eofRuneClass, spaceRuneClass:
+				token.removeLastRaw()
 				return token, err
 			case escapingQuoteRuneClass:
 				state = quotingEscapingState
@@ -328,6 +342,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				return token, err
 			case spaceRuneClass:
 				if nextRune == '\n' {
+					token.removeLastRaw()
 					state = startState
 					return token, err
 				} else {
@@ -355,6 +370,19 @@ func (t Tokens) Strings() []string {
 		s = append(s, token.Value)
 	}
 	return s
+}
+
+func (t Tokens) CurrentPipeline() Tokens {
+	tokens := make([]Token, 0)
+	for _, token := range t {
+		switch token.Type {
+		case PipelineToken:
+			tokens = make([]Token, 0)
+		default:
+			tokens = append(tokens, token)
+		}
+	}
+	return Tokens(tokens)
 }
 
 // Split partitions of a string into tokens.
