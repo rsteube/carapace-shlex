@@ -284,6 +284,12 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				switch nextRuneType {
 				case eofRuneClass:
 					switch {
+					case t.index == 0: // tonkenizer contains an empty string
+						token.removeLastRaw()
+						token.Type = WORD_TOKEN
+						token.Index = t.index
+						t.index += 1
+						return token, nil // return an additional empty token for current cursor position
 					case previousState == PIPELINE_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
