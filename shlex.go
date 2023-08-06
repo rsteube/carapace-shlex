@@ -191,20 +191,20 @@ func (t tokenClassifier) ClassifyRune(runeVal rune) runeTokenClass {
 	return t[runeVal]
 }
 
-// Lexer turns an input stream into a sequence of tokens. Whitespace and comments are skipped.
-type Lexer Tokenizer
+// lexer turns an input stream into a sequence of tokens. Whitespace and comments are skipped.
+type lexer tokenizer
 
-// NewLexer creates a new lexer from an input stream.
-func NewLexer(r io.Reader) *Lexer {
+// newLexer creates a new lexer from an input stream.
+func newLexer(r io.Reader) *lexer {
 
-	return (*Lexer)(NewTokenizer(r))
+	return (*lexer)(newTokenizer(r))
 }
 
 // Next returns the next token, or an error. If there are no more tokens,
 // the error will be io.EOF.
-func (l *Lexer) Next() (*Token, error) {
+func (l *lexer) Next() (*Token, error) {
 	for {
-		token, err := (*Tokenizer)(l).Next()
+		token, err := (*tokenizer)(l).Next()
 		if err != nil {
 			return token, err
 		}
@@ -219,40 +219,40 @@ func (l *Lexer) Next() (*Token, error) {
 	}
 }
 
-// Tokenizer turns an input stream into a sequence of typed tokens
-type Tokenizer struct {
+// tokenizer turns an input stream into a sequence of typed tokens
+type tokenizer struct {
 	input      bufio.Reader
 	classifier tokenClassifier
 	index      int
 	state      LexerState
 }
 
-func (t *Tokenizer) ReadRune() (r rune, size int, err error) {
+func (t *tokenizer) ReadRune() (r rune, size int, err error) {
 	if r, size, err = t.input.ReadRune(); err == nil {
 		t.index += 1
 	}
 	return
 }
 
-func (t *Tokenizer) UnreadRune() (err error) {
+func (t *tokenizer) UnreadRune() (err error) {
 	if err = t.input.UnreadRune(); err == nil {
 		t.index -= 1
 	}
 	return
 }
 
-// NewTokenizer creates a new tokenizer from an input stream.
-func NewTokenizer(r io.Reader) *Tokenizer {
+// newTokenizer creates a new tokenizer from an input stream.
+func newTokenizer(r io.Reader) *tokenizer {
 	input := bufio.NewReader(r)
 	classifier := newDefaultClassifier()
-	return &Tokenizer{
+	return &tokenizer{
 		input:      *input,
 		classifier: classifier}
 }
 
 // scanStream scans the stream for the next token using the internal state machine.
 // It will panic if it encounters a rune which it does not know how to handle.
-func (t *Tokenizer) scanStream() (*Token, error) {
+func (t *tokenizer) scanStream() (*Token, error) {
 	previousState := t.state
 	t.state = START_STATE
 	token := &Token{}
@@ -416,7 +416,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 }
 
 // Next returns the next token in the stream.
-func (t *Tokenizer) Next() (*Token, error) {
+func (t *tokenizer) Next() (*Token, error) {
 	token, err := t.scanStream()
 	if err == nil {
 		token.State = t.state // TODO should be done in scanStream
@@ -448,9 +448,16 @@ func (t Tokens) CurrentPipeline() *Tokens {
 	return &result
 }
 
+func (t Tokens) CurrentToken() *Token {
+	if len(t) == 0 {
+		return &Token{} // should never happen
+	}
+	return &t[len(t)-1]
+}
+
 // Split partitions of a string into tokens.
 func Split(s string) (*Tokens, error) {
-	l := NewLexer(strings.NewReader(s))
+	l := newLexer(strings.NewReader(s))
 	tokens := make([]Token, 0)
 	for {
 		token, err := l.Next()
