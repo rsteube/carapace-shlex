@@ -66,7 +66,7 @@ func TestTokenizer(t *testing.T) {
 		{WORD_TOKEN, "", "", 126, START_STATE},
 	}
 
-	tokenizer := NewTokenizer(testInput)
+	tokenizer := newTokenizer(testInput)
 	for i, want := range expectedTokens {
 		got, err := tokenizer.Next()
 		if err != nil {
@@ -82,7 +82,7 @@ func TestLexer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedStrings := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14"}
 
-	lexer := NewLexer(testInput)
+	lexer := newLexer(testInput)
 	for i, want := range expectedStrings {
 		got, err := lexer.Next()
 		if err != nil {
