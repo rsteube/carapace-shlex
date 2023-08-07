@@ -12,7 +12,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:  "carapace-spec",
-	Long: "TODO",
+	Long: "simple shell lexer",
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
