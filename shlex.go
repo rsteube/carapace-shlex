@@ -377,9 +377,9 @@ func (t *tokenizer) Next() (*Token, error) {
 	return token, err
 }
 
-type Tokens []Token
+type TokenSlice []Token
 
-func (t Tokens) Strings() []string {
+func (t TokenSlice) Strings() []string {
 	s := make([]string, 0, len(t))
 	for _, token := range t {
 		s = append(s, token.Value)
@@ -387,12 +387,12 @@ func (t Tokens) Strings() []string {
 	return s
 }
 
-func (t Tokens) CurrentPipeline() Tokens {
-	tokens := make(Tokens, 0)
+func (t TokenSlice) CurrentPipeline() TokenSlice {
+	tokens := make(TokenSlice, 0)
 	for _, token := range t {
 		switch token.Type {
 		case PIPELINE_TOKEN:
-			tokens = make(Tokens, 0)
+			tokens = make(TokenSlice, 0)
 		default:
 			tokens = append(tokens, token)
 		}
@@ -400,7 +400,7 @@ func (t Tokens) CurrentPipeline() Tokens {
 	return tokens
 }
 
-func (t Tokens) CurrentToken() (token Token) {
+func (t TokenSlice) CurrentToken() (token Token) {
 	if len(t) > 0 {
 		token = t[len(t)-1]
 	}
@@ -408,9 +408,9 @@ func (t Tokens) CurrentToken() (token Token) {
 }
 
 // Split partitions of a string into tokens.
-func Split(s string) (Tokens, error) {
+func Split(s string) (TokenSlice, error) {
 	l := newLexer(strings.NewReader(s))
-	tokens := make(Tokens, 0)
+	tokens := make(TokenSlice, 0)
 	for {
 		token, err := l.Next()
 		if err != nil {
