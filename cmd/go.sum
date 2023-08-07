@@ -2,8 +2,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/rsteube/carapace v0.40.2/go.mod h1:jkLt41Ne2TD2xPuMdX/2O05Smhy8vMgG7O2TYvC0yOc=
-github.com/rsteube/carapace v0.42.1-0.20230807000827-62ef042f7c5f h1:Sge/alH9qTrU0FGiH+29IE2LPsG9CsMjwzygCXHK6hQ=
-github.com/rsteube/carapace v0.42.1-0.20230807000827-62ef042f7c5f/go.mod h1:qknUEEMarEcpQgXkQ+zhSqdjcK1yTSC0USqo9Veeh/c=
+github.com/rsteube/carapace v0.42.1-0.20230807010754-bd350ea9708a h1:+5ty/DjDx+OQQ8SkxpJIm9dA4T5HwPgyjR+AT04IKQE=
+github.com/rsteube/carapace v0.42.1-0.20230807010754-bd350ea9708a/go.mod h1:mFP4TRFpcqR93/NRolFVFZ1CtBQbrTovctM95iwE0ck=
 github.com/rsteube/carapace-bridge v0.1.4 h1:3ZgsUlGCg5JGQTb8Kec54gn+wgVWyWej8nincgPR+gM=
 github.com/rsteube/carapace-bridge v0.1.4/go.mod h1:zPzdZTsLOb/adovJgEUUH+STcslqoRmvXx1vjIVOmz8=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
