@@ -47,22 +47,18 @@ func (t *Token) removeLastRaw() {
 // Two tokens are equal if both their types and values are equal. A nil token can
 // never be equal to another token.
 func (a *Token) Equal(b *Token) bool {
-	if a == nil || b == nil {
+	switch {
+	case a == nil,
+		b == nil,
+		a.Type != b.Type,
+		a.Value != b.Value,
+		a.RawValue != b.RawValue,
+		a.Index != b.Index,
+		a.State != b.State:
 		return false
+	default:
+		return true
 	}
-	if a.Type != b.Type {
-		return false
-	}
-	if a.RawValue != b.RawValue {
-		return false
-	}
-	if a.Index != b.Index {
-		return false
-	}
-	if a.State != b.State {
-		return false
-	}
-	return a.Value == b.Value
 }
 
 // Named classes of UTF-8 runes
