@@ -1,41 +1,3 @@
-/*
-Copyright 2012 Google Inc. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-/*
-Package shlex implements a simple lexer which splits input in to tokens using
-shell-style rules for quoting and commenting.
-
-The basic use case uses the default ASCII lexer to split a string into sub-strings:
-
-	shlex.Split("one \"two three\" four") -> []string{"one", "two three", "four"}
-
-To process a stream of strings:
-
-	l := NewLexer(os.Stdin)
-	for ; token, err := l.Next(); err != nil {
-		// process token
-	}
-
-To access the raw token stream (which includes tokens for comments):
-
-	  t := NewTokenizer(os.Stdin)
-	  for ; token, err := t.Next(); err != nil {
-		// process token
-	  }
-*/
 package shlex
 
 import (
@@ -352,9 +314,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			}
 		case ESCAPING_STATE: // the rune after an escape character
 			switch nextRuneType {
-			case eofRuneClass:
+			case eofRuneClass: // EOF found after escape character
 				token.removeLastRaw()
-				//err = fmt.Errorf("EOF found after escape character")
 				return token, err
 			default:
 				t.state = IN_WORD_STATE
@@ -362,9 +323,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			}
 		case ESCAPING_QUOTED_STATE: // the next rune after an escape character, in double quotes
 			switch nextRuneType {
-			case eofRuneClass:
+			case eofRuneClass: // EOF found after escape character
 				token.removeLastRaw()
-				// err = fmt.Errorf("EOF found after escape character")
 				return token, err
 			default:
 				t.state = QUOTING_ESCAPING_STATE
@@ -372,9 +332,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			}
 		case QUOTING_ESCAPING_STATE: // in escaping double quotes
 			switch nextRuneType {
-			case eofRuneClass:
+			case eofRuneClass: // EOF found when expecting closing quote
 				token.removeLastRaw()
-				// err = fmt.Errorf("EOF found when expecting closing quote")
 				return token, err
 			case escapingQuoteRuneClass:
 				t.state = IN_WORD_STATE
@@ -385,9 +344,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			}
 		case QUOTING_STATE: // in non-escaping single quotes
 			switch nextRuneType {
-			case eofRuneClass:
+			case eofRuneClass: // EOF found when expecting closing quote
 				token.removeLastRaw()
-				// err = fmt.Errorf("EOF found when expecting closing quote")
 				return token, err
 			case nonEscapingQuoteRuneClass:
 				t.state = IN_WORD_STATE
