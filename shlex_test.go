@@ -100,10 +100,10 @@ func TestSplit(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(want) != len(*got) {
+	if len(want) != len(got) {
 		t.Errorf("Split(%q) -> %v. Want: %v", testString, got, want)
 	}
-	for i, g := range *got {
+	for i, g := range got {
 		if g.Value != want[i] {
 			t.Errorf("Split(%q)[%v] -> %v. Want: %v", testString, i, g.Value, want[i])
 		}
