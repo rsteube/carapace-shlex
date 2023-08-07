@@ -158,7 +158,6 @@ type lexer tokenizer
 
 // newLexer creates a new lexer from an input stream.
 func newLexer(r io.Reader) *lexer {
-
 	return (*lexer)(newTokenizer(r))
 }
 
@@ -392,37 +391,35 @@ func (t Tokens) Strings() []string {
 	return s
 }
 
-func (t Tokens) CurrentPipeline() *Tokens {
-	tokens := make([]Token, 0)
+func (t Tokens) CurrentPipeline() Tokens {
+	tokens := make(Tokens, 0)
 	for _, token := range t {
 		switch token.Type {
 		case PIPELINE_TOKEN:
-			tokens = make([]Token, 0)
+			tokens = make(Tokens, 0)
 		default:
 			tokens = append(tokens, token)
 		}
 	}
-	result := Tokens(tokens)
-	return &result
+	return tokens
 }
 
-func (t Tokens) CurrentToken() *Token {
-	if len(t) == 0 {
-		return &Token{} // should never happen
+func (t Tokens) CurrentToken() (token Token) {
+	if len(t) > 0 {
+		token = t[len(t)-1]
 	}
-	return &t[len(t)-1]
+	return
 }
 
 // Split partitions of a string into tokens.
-func Split(s string) (*Tokens, error) {
+func Split(s string) (Tokens, error) {
 	l := newLexer(strings.NewReader(s))
-	tokens := make([]Token, 0)
+	tokens := make(Tokens, 0)
 	for {
 		token, err := l.Next()
 		if err != nil {
 			if err == io.EOF {
-				t := Tokens(tokens)
-				return &t, nil
+				return tokens, nil
 			}
 			return nil, err
 		}
