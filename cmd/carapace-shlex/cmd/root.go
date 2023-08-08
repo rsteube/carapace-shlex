@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/rsteube/carapace"
 	"github.com/rsteube/carapace-bridge/pkg/actions/bridge"
@@ -22,12 +21,21 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		m, err := json.MarshalIndent(tokens, "", "  ")
-		if err != nil {
-			return err
+
+		if cmd.Flag("current").Changed {
+			tokens = tokens.CurrentPipeline()
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), string(m))
-		return nil
+		if cmd.Flag("args").Changed {
+			tokens = tokens.FilterRedirects()
+		}
+		if cmd.Flag("words").Changed {
+			tokens = tokens.Words()
+		}
+
+		encoder := json.NewEncoder(cmd.OutOrStdout())
+		encoder.SetEscapeHTML(false)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(tokens)
 	},
 }
 
@@ -36,6 +44,10 @@ func Execute() error {
 }
 
 func init() {
+	rootCmd.Flags().Bool("current", false, "show current pipeline")
+	rootCmd.Flags().Bool("words", false, "show words")
+	rootCmd.Flags().Bool("args", false, "show words")
+
 	carapace.Gen(rootCmd).PositionalCompletion(
 		bridge.ActionCarapaceBin().SplitP(),
 	)

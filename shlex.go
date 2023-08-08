@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -27,11 +29,12 @@ func (l LexerState) MarshalJSON() ([]byte, error) {
 
 // Token is a (type, value) pair representing a lexographical token.
 type Token struct {
-	Type     TokenType
-	Value    string
-	RawValue string
-	Index    int
-	State    LexerState
+	Type          TokenType
+	Value         string
+	RawValue      string
+	Index         int
+	State         LexerState
+	WordbreakType WordbreakType `json:",omitempty"`
 }
 
 func (t *Token) add(r rune) {
@@ -43,18 +46,23 @@ func (t *Token) removeLastRaw() {
 	t.RawValue = string(runes[:len(runes)-1])
 }
 
+func (t Token) adjoins(other Token) bool {
+	return t.Index+len(t.RawValue) == other.Index || t.Index == other.Index+len(other.RawValue)
+}
+
 // Equal reports whether tokens a, and b, are equal.
 // Two tokens are equal if both their types and values are equal. A nil token can
 // never be equal to another token.
-func (a *Token) Equal(b *Token) bool {
+func (t *Token) Equal(other *Token) bool {
 	switch {
-	case a == nil,
-		b == nil,
-		a.Type != b.Type,
-		a.Value != b.Value,
-		a.RawValue != b.RawValue,
-		a.Index != b.Index,
-		a.State != b.State:
+	case t == nil,
+		other == nil,
+		t.Type != other.Type,
+		t.Value != other.Value,
+		t.RawValue != other.RawValue,
+		t.Index != other.Index,
+		t.State != other.State,
+		t.WordbreakType != other.WordbreakType:
 		return false
 	default:
 		return true
@@ -68,7 +76,6 @@ const (
 	nonEscapingQuoteRunes = "'"
 	escapeRunes           = `\`
 	commentRunes          = "#"
-	pipelineRunes         = "|&;"
 )
 
 // Classes of rune token
@@ -79,7 +86,7 @@ const (
 	nonEscapingQuoteRuneClass
 	escapeRuneClass
 	commentRuneClass
-	pipelineRuneClass
+	wordbreakRuneClass
 	eofRuneClass
 )
 
@@ -89,15 +96,15 @@ const (
 	WORD_TOKEN
 	SPACE_TOKEN
 	COMMENT_TOKEN
-	PIPELINE_TOKEN
+	WORDBREAK_TOKEN
 )
 
 var tokenTypes = map[TokenType]string{
-	UNKNOWN_TOKEN:  "UNKNOWN_TOKEN",
-	WORD_TOKEN:     "WORD_TOKEN",
-	SPACE_TOKEN:    "SPACE_TOKEN",
-	COMMENT_TOKEN:  "COMMENT_TOKEN",
-	PIPELINE_TOKEN: "PIPELINE_TOKEN",
+	UNKNOWN_TOKEN:   "UNKNOWN_TOKEN",
+	WORD_TOKEN:      "WORD_TOKEN",
+	SPACE_TOKEN:     "SPACE_TOKEN",
+	COMMENT_TOKEN:   "COMMENT_TOKEN",
+	WORDBREAK_TOKEN: "WORDBREAK_TOKEN",
 }
 
 // Lexer state machine states
@@ -109,7 +116,7 @@ const (
 	QUOTING_ESCAPING_STATE                   // we are within a quoted string that supports escaping ("...")
 	QUOTING_STATE                            // we are within a string that does not support escaping ('...')
 	COMMENT_STATE                            // we are within a comment (everything following an unquoted or unescaped #
-	PIPELINE_STATE                           // we have just consumed a pipeline delimiter (just consume these until we reach something else)
+	WORDBREAK_STATE                          // we have just consumed a wordbreak rune
 )
 
 var lexerStates = map[LexerState]string{
@@ -120,7 +127,7 @@ var lexerStates = map[LexerState]string{
 	QUOTING_ESCAPING_STATE: "QUOTING_ESCAPING_STATE",
 	QUOTING_STATE:          "QUOTING_STATE",
 	COMMENT_STATE:          "COMMENT_STATE",
-	PIPELINE_STATE:         "PIPELINE_STATE",
+	WORDBREAK_STATE:        "WORDBREAK_STATE",
 }
 
 // tokenClassifier is used for classifying rune characters.
@@ -140,7 +147,19 @@ func newDefaultClassifier() tokenClassifier {
 	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
 	t.addRuneClass(escapeRunes, escapeRuneClass)
 	t.addRuneClass(commentRunes, commentRuneClass)
-	t.addRuneClass(pipelineRunes, pipelineRuneClass)
+
+	wordbreakRunes := BASH_WORDBREAKS
+	if wordbreaks := os.Getenv("COMP_WORDBREAKS"); wordbreaks != "" {
+		wordbreakRunes = wordbreaks
+	}
+	filtered := make([]rune, 0)
+	for _, r := range wordbreakRunes {
+		if t.ClassifyRune(r) == unknownRuneClass {
+			filtered = append(filtered, r)
+		}
+	}
+	t.addRuneClass(string(filtered), wordbreakRuneClass)
+
 	return t
 }
 
@@ -166,7 +185,7 @@ func (l *lexer) Next() (*Token, error) {
 			return token, err
 		}
 		switch token.Type {
-		case WORD_TOKEN, PIPELINE_TOKEN:
+		case WORD_TOKEN, WORDBREAK_TOKEN:
 			return token, nil
 		case COMMENT_TOKEN:
 			// skip comments
@@ -247,7 +266,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 						token.Index = t.index
 						t.index += 1
 						return token, nil // return an additional empty token for current cursor position
-					case previousState == PIPELINE_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
+					case previousState == WORDBREAK_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
 						token.Index = t.index
@@ -269,19 +288,19 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				case commentRuneClass:
 					token.Type = COMMENT_TOKEN
 					t.state = COMMENT_STATE
-				case pipelineRuneClass:
-					token.Type = PIPELINE_TOKEN
+				case wordbreakRuneClass:
+					token.Type = WORDBREAK_TOKEN
 					token.add(nextRune)
-					t.state = PIPELINE_STATE
+					t.state = WORDBREAK_STATE
 				default:
 					token.Type = WORD_TOKEN
 					token.add(nextRune)
 					t.state = IN_WORD_STATE
 				}
 			}
-		case PIPELINE_STATE:
+		case WORDBREAK_STATE:
 			switch nextRuneType {
-			case pipelineRuneClass:
+			case wordbreakRuneClass:
 				token.add(nextRune)
 			default:
 				token.removeLastRaw()
@@ -290,7 +309,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			}
 		case IN_WORD_STATE: // in a regular word
 			switch nextRuneType {
-			case pipelineRuneClass:
+			case wordbreakRuneClass:
 				token.removeLastRaw()
 				t.UnreadRune()
 				return token, err
@@ -373,6 +392,7 @@ func (t *tokenizer) Next() (*Token, error) {
 	token, err := t.scanStream()
 	if err == nil {
 		token.State = t.state // TODO should be done in scanStream
+		token.WordbreakType = wordbreakType(*token)
 	}
 	return token, err
 }
@@ -387,17 +407,75 @@ func (t TokenSlice) Strings() []string {
 	return s
 }
 
-func (t TokenSlice) CurrentPipeline() TokenSlice {
-	tokens := make(TokenSlice, 0)
+func (t TokenSlice) Pipelines() []TokenSlice {
+	pipelines := make([]TokenSlice, 0)
+
+	pipeline := make(TokenSlice, 0)
 	for _, token := range t {
-		switch token.Type {
-		case PIPELINE_TOKEN:
-			tokens = make(TokenSlice, 0)
+		switch {
+		case token.Type == WORDBREAK_TOKEN && wordbreakType(token).IsPipelineDelimiter():
+			pipelines = append(pipelines, pipeline)
+			pipeline = make(TokenSlice, 0)
 		default:
-			tokens = append(tokens, token)
+			pipeline = append(pipeline, token)
 		}
 	}
-	return tokens
+	return append(pipelines, pipeline)
+}
+
+func (t TokenSlice) CurrentPipeline() TokenSlice {
+	pipelines := t.Pipelines()
+	return pipelines[len(pipelines)-1]
+}
+
+func (t TokenSlice) Words() TokenSlice {
+	words := make(TokenSlice, 0)
+	for index, token := range t {
+		switch {
+		case index == 0:
+			words = append(words, token)
+		case t[index-1].adjoins(token):
+			words[len(words)-1].Value += token.Value
+			words[len(words)-1].RawValue += token.RawValue
+			words[len(words)-1].State = token.State
+		default:
+			words = append(words, token)
+		}
+	}
+	return words
+}
+
+func (t TokenSlice) FilterRedirects() TokenSlice {
+	filtered := make(TokenSlice, 0)
+	for index, token := range t {
+		switch token.Type {
+		case WORDBREAK_TOKEN:
+			if wordbreakType(token).IsRedirect() {
+				continue
+			}
+		}
+
+		if index > 0 {
+			if wordbreakType(t[index-1]).IsRedirect() {
+				continue
+			}
+		}
+
+		if index < len(t)-1 {
+			next := t[index+1]
+			if token.adjoins(next) {
+				if _, err := strconv.Atoi(token.RawValue); err == nil {
+					if wordbreakType(t[index+1]).IsRedirect() {
+						continue
+					}
+				}
+			}
+
+		}
+
+		filtered = append(filtered, token)
+	}
+	return filtered
 }
 
 func (t TokenSlice) CurrentToken() (token Token) {

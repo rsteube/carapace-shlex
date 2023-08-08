@@ -17,6 +17,7 @@ limitations under the License.
 package shlex
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -42,28 +43,34 @@ func TestClassifier(t *testing.T) {
 	}
 }
 
+func init() {
+	os.Unsetenv("COMP_WORDBREAKS")
+}
+
 func TestTokenizer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedTokens := []*Token{
-		{WORD_TOKEN, "one", "one", 0, IN_WORD_STATE},
-		{WORD_TOKEN, "two", "two", 4, IN_WORD_STATE},
-		{WORD_TOKEN, "three four", "\"three four\"", 8, IN_WORD_STATE},
-		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE},
-		{WORD_TOKEN, "seven#eight", "seven#eight", 36, IN_WORD_STATE},
-		{COMMENT_TOKEN, " nine # ten", "# nine # ten", 48, START_STATE},
-		{WORD_TOKEN, "eleven", "eleven", 62, IN_WORD_STATE},
-		{WORD_TOKEN, "twelve\\", "'twelve\\'", 69, IN_WORD_STATE},
-		{WORD_TOKEN, "thirteen=13", "thirteen=13", 79, IN_WORD_STATE},
-		{WORD_TOKEN, "fourteen/14", "fourteen/14", 91, IN_WORD_STATE},
-		{PIPELINE_TOKEN, "|", "|", 103, PIPELINE_STATE},
-		{PIPELINE_TOKEN, "||", "||", 105, PIPELINE_STATE},
-		{PIPELINE_TOKEN, "|", "|", 108, PIPELINE_STATE},
-		{WORD_TOKEN, "after", "after", 109, IN_WORD_STATE},
-		{WORD_TOKEN, "before", "before", 115, IN_WORD_STATE},
-		{PIPELINE_TOKEN, "|", "|", 121, PIPELINE_STATE},
-		{PIPELINE_TOKEN, "&", "&", 123, PIPELINE_STATE},
-		{PIPELINE_TOKEN, ";", ";", 125, PIPELINE_STATE},
-		{WORD_TOKEN, "", "", 126, START_STATE},
+		{WORD_TOKEN, "one", "one", 0, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "two", "two", 4, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "three four", "\"three four\"", 8, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "seven#eight", "seven#eight", 36, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{COMMENT_TOKEN, " nine # ten", "# nine # ten", 48, START_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "eleven", "eleven", 62, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "twelve\\", "'twelve\\'", 69, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "thirteen", "thirteen", 79, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORDBREAK_TOKEN, "=", "=", 87, WORDBREAK_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "13", "13", 88, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "fourteen/14", "fourteen/14", 91, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORDBREAK_TOKEN, "|", "|", 103, WORDBREAK_STATE, WORDBREAK_PIPE},
+		{WORDBREAK_TOKEN, "||", "||", 105, WORDBREAK_STATE, WORDBREAK_LIST_OR},
+		{WORDBREAK_TOKEN, "|", "|", 108, WORDBREAK_STATE, WORDBREAK_PIPE},
+		{WORD_TOKEN, "after", "after", 109, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORD_TOKEN, "before", "before", 115, IN_WORD_STATE, WORDBREAK_UNKNOWN},
+		{WORDBREAK_TOKEN, "|", "|", 121, WORDBREAK_STATE, WORDBREAK_PIPE},
+		{WORDBREAK_TOKEN, "&", "&", 123, WORDBREAK_STATE, WORDBREAK_LIST_ASYNC},
+		{WORDBREAK_TOKEN, ";", ";", 125, WORDBREAK_STATE, WORDBREAK_LIST_SEQUENTIAL},
+		{WORD_TOKEN, "", "", 126, START_STATE, WORDBREAK_UNKNOWN},
 	}
 
 	tokenizer := newTokenizer(testInput)
@@ -80,7 +87,7 @@ func TestTokenizer(t *testing.T) {
 
 func TestLexer(t *testing.T) {
 	testInput := strings.NewReader(testString)
-	expectedStrings := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14"}
+	expectedStrings := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen", "=", "13", "fourteen/14"}
 
 	lexer := newLexer(testInput)
 	for i, want := range expectedStrings {
@@ -95,7 +102,7 @@ func TestLexer(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen=13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";", ""}
+	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen", "=", "13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";", ""}
 	got, err := Split(testString)
 	if err != nil {
 		t.Error(err)
