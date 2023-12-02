@@ -28,12 +28,13 @@ func (l LexerState) MarshalJSON() ([]byte, error) {
 
 // Token is a (type, value) pair representing a lexographical token.
 type Token struct {
-	Type          TokenType
-	Value         string
-	RawValue      string
-	Index         int
-	State         LexerState
-	WordbreakType WordbreakType `json:",omitempty"`
+	Type           TokenType
+	Value          string
+	RawValue       string
+	Index          int
+	State          LexerState
+	WordbreakType  WordbreakType `json:",omitempty"`
+	WordbreakIndex int           // index of last opening quote in Value (only correct when in quoting state)
 }
 
 func (t *Token) add(r rune) {
@@ -61,7 +62,8 @@ func (t *Token) Equal(other *Token) bool {
 		t.RawValue != other.RawValue,
 		t.Index != other.Index,
 		t.State != other.State,
-		t.WordbreakType != other.WordbreakType:
+		t.WordbreakType != other.WordbreakType,
+		t.WordbreakIndex != other.WordbreakIndex:
 		return false
 	default:
 		return true
@@ -278,9 +280,11 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				case escapingQuoteRuneClass:
 					token.Type = WORD_TOKEN
 					t.state = QUOTING_ESCAPING_STATE
+					token.WordbreakIndex = len(token.Value)
 				case nonEscapingQuoteRuneClass:
 					token.Type = WORD_TOKEN
 					t.state = QUOTING_STATE
+					token.WordbreakIndex = len(token.Value)
 				case escapeRuneClass:
 					token.Type = WORD_TOKEN
 					t.state = ESCAPING_STATE
@@ -318,8 +322,10 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			case escapingQuoteRuneClass:
 				t.state = QUOTING_ESCAPING_STATE
+				token.WordbreakIndex = len(token.Value)
 			case nonEscapingQuoteRuneClass:
 				t.state = QUOTING_STATE
+				token.WordbreakIndex = len(token.Value)
 			case escapeRuneClass:
 				t.state = ESCAPING_STATE
 			default:
@@ -341,6 +347,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				t.state = QUOTING_ESCAPING_STATE
+				token.WordbreakIndex = len(token.Value)
 				token.add(nextRune)
 			}
 		case QUOTING_ESCAPING_STATE: // in escaping double quotes
