@@ -347,7 +347,6 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				t.state = QUOTING_ESCAPING_STATE
-				token.WordbreakIndex = len(token.Value)
 				token.add(nextRune)
 			}
 		case QUOTING_ESCAPING_STATE: // in escaping double quotes
