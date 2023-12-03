@@ -6,7 +6,7 @@ require (
 	github.com/rsteube/carapace v0.42.1-0.20230807010754-bd350ea9708a
 	github.com/rsteube/carapace-bridge v0.1.4
 	github.com/rsteube/carapace-shlex v0.0.2
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 )
 
 replace github.com/rsteube/carapace-shlex => ../
