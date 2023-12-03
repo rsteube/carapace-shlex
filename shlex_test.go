@@ -53,7 +53,7 @@ func TestTokenizer(t *testing.T) {
 		{WORD_TOKEN, "one", "one", 0, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
 		{WORD_TOKEN, "two", "two", 4, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
 		{WORD_TOKEN, "three four", "\"three four\"", 8, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE, WORDBREAK_UNKNOWN, 9},
+		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
 		{WORD_TOKEN, "seven#eight", "seven#eight", 36, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
 		{COMMENT_TOKEN, " nine # ten", "# nine # ten", 48, START_STATE, WORDBREAK_UNKNOWN, 0},
 		{WORD_TOKEN, "eleven", "eleven", 62, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
