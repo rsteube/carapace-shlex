@@ -1,6 +1,8 @@
 package shlex
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type TokenSlice []Token
 
@@ -93,6 +95,16 @@ func (t TokenSlice) CurrentToken() (token Token) {
 func (t TokenSlice) WordbreakPrefix() string {
 	found := false
 	prefix := ""
+
+	last := t[len(t)-1]
+	switch last.State {
+	case QUOTING_STATE, QUOTING_ESCAPING_STATE, ESCAPING_QUOTED_STATE:
+		// Seems bash handles the last opening quote as wordbreak when in quoting state.
+		// So add value up to last opening quote to prefix.
+		found = true
+		prefix = last.Value[:last.WordbreakIndex]
+	}
+
 	for i := len(t) - 2; i >= 0; i-- {
 		token := t[i]
 		if !token.adjoins(t[i+1]) {
