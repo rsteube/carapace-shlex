@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	shlex "github.com/carapace-sh/carapace-shlex"
 	"github.com/rsteube/carapace"
 	"github.com/rsteube/carapace-bridge/pkg/actions/bridge"
-	shlex "github.com/rsteube/carapace-shlex"
 	"github.com/spf13/cobra"
 )
 

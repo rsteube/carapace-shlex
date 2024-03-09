@@ -1,3 +1,3 @@
-module github.com/rsteube/carapace-shlex
+module github.com/carapace-sh/carapace-shlex
 
 go 1.15
