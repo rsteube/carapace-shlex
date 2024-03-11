@@ -1,6 +1,6 @@
 module github.com/carapace-sh/carapace-shlex/cmd
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/carapace-sh/carapace v0.50.3-0.20240311185857-480da0e3873f
