@@ -8,5 +8,5 @@ Fork of [go-shlex](https://github.com/google/shlex) aimed to enable completion o
 
 [![asciicast](https://asciinema.org/a/599580.svg)](https://asciinema.org/a/599580)
 
-[Split]:https://rsteube.github.io/carapace/carapace/action/split.html
-[carapace]:https://github.com/rsteube/carapace
+[Split]:https://carapace-sh.github.io/carapace/carapace/action/split.html
+[carapace]:https://github.com/carapace-sh/carapace
