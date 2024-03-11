@@ -1,11 +1,10 @@
+github.com/carapace-sh/carapace v0.50.3-0.20240311185857-480da0e3873f h1:PX63aNSoqguEFMJ38GStsYRncYT1AhV9Vj+GIod4rsk=
+github.com/carapace-sh/carapace v0.50.3-0.20240311185857-480da0e3873f/go.mod h1:UxflttCmX+TRfsKqA0I0cEQFn2rvwGp6iTGyO8oS4NY=
+github.com/carapace-sh/carapace-bridge v0.2.16-0.20240311173237-760172108463 h1:RF7fO6h+sxFmgcqv656vCLEGGFtx8PNBLozbDxKwg7g=
+github.com/carapace-sh/carapace-bridge v0.2.16-0.20240311173237-760172108463/go.mod h1:cmSA24XX0CDcL7kF+kl/0rJYyDsj7B9JxCnoTnU/OGw=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/rsteube/carapace v0.50.0/go.mod h1:syVOvI8e2rEEK/9aMZxfWuHvcnQK/EcnTV4roClEnLE=
-github.com/rsteube/carapace v0.50.2 h1:9nPOBmIKPySFQvtBRGghFafRCR09Cf9K4/BEo1M+VFE=
-github.com/rsteube/carapace v0.50.2/go.mod h1:syVOvI8e2rEEK/9aMZxfWuHvcnQK/EcnTV4roClEnLE=
-github.com/rsteube/carapace-bridge v0.2.15 h1:B90M1g28iXOfuER89P2zhwRKEafV7uxyF3BepvWoubA=
-github.com/rsteube/carapace-bridge v0.2.15/go.mod h1:CrqtRDd1D8uT9woDXnEuer7tq8IfvR9MFAr3PuFKV7E=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/spf13/cobra v1.8.0 h1:7aJaZx1B85qltLMc546zn58BxxfZdR/W22ej9CFoEf0=
 github.com/spf13/cobra v1.8.0/go.mod h1:WXLWApfZ71AjXPya3WOlMsY9yMs7YeiHhFVlvLyhcho=
