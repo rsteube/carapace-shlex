@@ -3,7 +3,8 @@ before:
   hooks:
     - go mod download
 builds:
-  - env:
+  - id: default
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -11,8 +12,27 @@ builds:
       - darwin
     main: ./cmd/carapace-shlex
     binary: carapace-shlex
+  - id: termux
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - android
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+    main: ./cmd/carapace-shlex
+    binary: carapace-shlex
+    gobinary: go-termux
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    builds:
+     - default
     format_overrides:
       - goos: windows
         format: zip
+  - id: termux
+    builds:
+      - termux
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}.termux'
