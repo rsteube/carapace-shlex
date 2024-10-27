@@ -12,19 +12,6 @@ builds:
       - darwin
     main: ./cmd/carapace-shlex
     binary: carapace-shlex
-  - id: android
-    env:
-      - CGO_ENABLED=1
-    goos:
-      - android
-    goarch:
-      - amd64
-      - arm64
-      - arm
-      - "386"
-    main: ./cmd/carapace-shlex
-    binary: carapace-shlex
-    gobinary: go-android
   - id: termux
     env:
       - CGO_ENABLED=1
@@ -42,7 +29,6 @@ archives:
   - id: default
     builds:
      - default
-     - android
     format_overrides:
       - goos: windows
         format: zip
