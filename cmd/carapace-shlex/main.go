@@ -1,7 +1,18 @@
 package main
 
-import "github.com/carapace-sh/carapace-shlex/cmd/carapace-shlex/cmd"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/carapace-sh/carapace-shlex/cmd/carapace-shlex/cmd"
+)
+
+var commit, date string
+var version = "develop"
 
 func main() {
-	cmd.Execute()
+	if strings.Contains(version, "SNAPSHOT") {
+		version += fmt.Sprintf(" (%v) [%v]", date, commit)
+	}
+	cmd.Execute(version)
 }
