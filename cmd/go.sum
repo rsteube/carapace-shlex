@@ -1,5 +1,5 @@
-github.com/carapace-sh/carapace v1.4.0 h1:GoCzicKhRgf7/BYZAS/pCBrU3dU4vzISn5XenuOgSh8=
-github.com/carapace-sh/carapace v1.4.0/go.mod h1:djegtVDi/3duSAqZNU+/nCq7XtDRMRZUb5bW0O/HnEs=
+github.com/carapace-sh/carapace v1.5.2 h1:ddFLVzPLmEUnKTtglMDDnfbFSYyCMEd0xn1ysguSWLw=
+github.com/carapace-sh/carapace v1.5.2/go.mod h1:djegtVDi/3duSAqZNU+/nCq7XtDRMRZUb5bW0O/HnEs=
 github.com/carapace-sh/carapace-bridge v1.1.0 h1:WkeQGPg7Zu0S3M39c0hZDlPY7EJ7Lrol1iVCJoFa6gM=
 github.com/carapace-sh/carapace-bridge v1.1.0/go.mod h1:bKG97KfwYewrvke7ULgv0OYIJ6lHbJDPex8W29NlD6o=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
